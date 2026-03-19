@@ -45,33 +45,39 @@ class QueryTimeout
     /**
      * Run query with timeout.
      *
-     * @param callable $callback
-     * @param int|float|null $seconds
-     * @param string|Connection|null $connection
-     * @return $this
+     * @param callable|null $callback Database query
+     * @param int|float|null $seconds Timeout in seconds (Default: See timeout config)
+     * @param string|Connection|null $con Connection (Default: default connection)
+     * @param callable|null $whenTimeout Callback executed when callback execution expires
+     * @param mixed $fallbackValue The default result value used when throwTimeoutException is false
+     * @param bool $throwTimeoutException Indicates whether to throw a QueryTimeoutException or return the default result value
+     * @return QueryTimeout|QueryTimeoutBuilder
      */
     public function __invoke(
         callable|null          $callback = null,
         int|float|null         $seconds = null,
-        string|Connection|null $connection = null
+        string|Connection|null $con = null,
+        callable|null          $whenTimeout = null,
+        mixed                  $fallbackValue = null,
+        bool                   $throwTimeoutException = true
     ): static|QueryTimeoutBuilder
     {
         if (null === $callback) {
             return $this->build();
         }
 
-        $this->lastResult    = null;
+        $this->lastResult    = new QueryTimeoutDefaultResult($fallbackValue);
         $this->lastQueryTime = null;
 
         $seconds = $seconds ?? $this->config['default_timeout'];
 
-        $connection = $connection instanceof Connection
-            ? $connection : ($connection ? \DB::connection($connection) : \DB::connection());
+        $con = $con instanceof Connection
+            ? $con : ($con ? \DB::connection($con) : \DB::connection());
 
-        $connectionName = $connection->getName();
+        $connectionName = $con->getName();
 
         if (!isset($this->drivers[$connectionName])) {
-            $driverName = str($connection->getDriverName())
+            $driverName = str($con->getDriverName())
                 ->lower();
 
             $driverClass = $driverName
@@ -81,15 +87,15 @@ class QueryTimeout
                 ->toString();
 
             $this->drivers[$connectionName] = new ($driverClass)(
-                $connection,
+                $con,
                 $this->config[$driverName->toString()] ?? []
             );
 
             $this->drivers[$connectionName]->saveDefaultTimeout();
         }
 
-        $connection = $this->drivers[$connectionName];
-        $connection->setTimeout($seconds);
+        $con = $this->drivers[$connectionName];
+        $con->setTimeout($seconds);
 
         $error      = null;
         $startTimer = now();
@@ -98,27 +104,41 @@ class QueryTimeout
             $this->lastResult = $callback();
         } catch (\Throwable $e) {
             $error = $e;
+        } finally {
+            // It's important to reset the default timeout after the callback execution.
+            $con->resetTimeout();
         }
 
-        // It's important to reset the default timeout after the callback execution.
-        $connection->resetTimeout();
-
-        if ($error) {
-            $connection->throwTimeoutException($error);
-        }
+        $error = $error ? $con->captureTimeoutException($error) : null;
 
         $runtime = $startTimer->diffInMicroseconds(now());
 
         // Unfortunately, some RDBMS like MySQL doesn't raise any error or warning when calculated queries are used.
         // so we have to calculate the runtime and artificially to create the exception.
         // This method is non-deterministic because the PHP code will consume runtime.
-        if (!$connection->canRaiseTimeoutException()) {
+        if (!$error && !$con->canRaiseTimeoutException()) {
             if ($seconds < ($runtime / 1e6)) {
-                throw new QueryTimeoutException($connectionName);
+                $error = new QueryTimeoutException($connectionName);
             }
         }
 
         $this->lastQueryTime = $runtime / $this->getTimeResolutionScale();
+
+        if ($error) {
+            if ($error instanceof QueryTimeoutException) {
+
+                if ($whenTimeout) {
+                    $whenTimeout($error);
+                }
+
+                if ($throwTimeoutException === true) {
+                    throw $error;
+                }
+            } else {
+                // All other errors are always thrown.
+                throw $error;
+            }
+        }
 
         return $this;
     }
@@ -128,7 +148,7 @@ class QueryTimeout
      *
      * @return QueryTimeoutBuilder
      */
-    public function build() : QueryTimeoutBuilder
+    public function build(): QueryTimeoutBuilder
     {
         return new QueryTimeoutBuilder($this);
     }
@@ -141,7 +161,7 @@ class QueryTimeout
      */
     public function getResult(): mixed
     {
-        return $this->lastResult;
+        return $this->lastResult instanceof QueryTimeoutDefaultResult ? $this->lastResult->value() : $this->lastResult;
     }
 
     /**

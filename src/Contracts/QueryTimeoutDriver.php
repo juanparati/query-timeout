@@ -16,7 +16,7 @@ interface QueryTimeoutDriver
 
     public function isCompatible(): bool;
 
-    public function throwTimeoutException(\Throwable $error): never;
+    public function captureTimeoutException(\Throwable $error): \Throwable;
 
     public function canRaiseTimeoutException(): bool;
 }

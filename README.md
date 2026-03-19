@@ -17,9 +17,10 @@ Use the `QueryTimeout` facade to set a maximum execution time for your queries:
 
 ```PHP
 \QueryTimeout(
-    fn() => \DB::select('SELECT SLEEP(4)'), // Your query comes here (Use pg_sleep for testing with PostgreSQL)
-    3                                     , // Interrupt if a query takes more than 3 seconds (Keep null for default timeout)
-    'myconnection'                          // Database connection (Keep null for the default connection)
+    fn() => \DB::select('SELECT SLEEP(4)'),     // Your query comes here (Use pg_sleep for testing with PostgreSQL)
+    3                                     ,     // Interrupt if a query takes more than 3 seconds (Keep null for default timeout)
+    'myconnection'                              // Database connection (Keep null for the default connection)
+    fn() => logs()->error('Timeout here')       // Run this callback before throwing the exception
 );
 ```
 
@@ -30,10 +31,11 @@ or using the fluent builder:
     ->for(fn() => \DB::select('SELECT SLEEP(4)'))
     ->timeout(3)
     ->on('myconnection')
+    ->whenTimeout(fn() => logs()->error('Timeout here'))
     ->run();
 ```
 
-In the previous example if the query exceeds the specified timeout (3 seconds), it will be terminated and throw a `\Juanparati\QueryTimeout\QueryTimeoutException`.
+In the previous example if the query exceeds the specified timeout (3 seconds), it will send an error to the log and throw a `\Juanparati\QueryTimeout\QueryTimeoutException`.
 
 
 ### Returning direct results

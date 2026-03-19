@@ -53,6 +53,184 @@ class TimeoutTest extends TimeoutTestBase
     }
 
 
+    public function test_when_timeout_callback_is_called_on_timeout()
+    {
+        $called = false;
+
+        $this->assertThrows(function () use (&$called) {
+            app(QueryTimeout::class)(
+                fn () => static::generateSleepQuery(3),
+                2,
+                null,
+                function (QueryTimeoutException $e) use (&$called) {
+                    $called = true;
+                }
+            );
+        }, QueryTimeoutException::class);
+
+        $this->assertTrue($called, 'whenTimeout callback should have been called');
+    }
+
+    public function test_when_timeout_callback_receives_exception_instance()
+    {
+        $receivedException = null;
+
+        $this->assertThrows(function () use (&$receivedException) {
+            app(QueryTimeout::class)(
+                fn () => static::generateSleepQuery(3),
+                2,
+                null,
+                function (QueryTimeoutException $e) use (&$receivedException) {
+                    $receivedException = $e;
+                }
+            );
+        }, QueryTimeoutException::class);
+
+        $this->assertInstanceOf(QueryTimeoutException::class, $receivedException);
+        $this->assertEquals('default', $receivedException->getConnectionName());
+    }
+
+    public function test_when_timeout_callback_is_not_called_without_timeout()
+    {
+        $called = false;
+
+        app(QueryTimeout::class)(
+            fn () => \DB::select('SELECT TRUE'),
+            3,
+            null,
+            function () use (&$called) {
+                $called = true;
+            }
+        );
+
+        $this->assertFalse($called, 'whenTimeout callback should not have been called');
+    }
+
+    public function test_when_timeout_with_no_throw_calls_callback_and_returns_fallback()
+    {
+        $called = false;
+
+        $result = app(QueryTimeout::class)(
+            fn () => static::generateSleepQuery(3),
+            2,
+            null,
+            function (QueryTimeoutException $e) use (&$called) {
+                $called = true;
+            },
+            'fallback_value',
+            false
+        );
+
+        $this->assertTrue($called, 'whenTimeout callback should have been called');
+        $this->assertEquals('fallback_value', $result->getResult());
+    }
+
+    public function test_when_timeout_with_no_throw_returns_null_fallback()
+    {
+        $result = app(QueryTimeout::class)(
+            fn () => static::generateSleepQuery(3),
+            2,
+            null,
+            fn () => null,
+            null,
+            false
+        );
+
+        $this->assertNull($result->getResult());
+    }
+
+    public function test_builder_when_timeout_callback_is_called_on_timeout()
+    {
+        $called = false;
+
+        $this->assertThrows(function () use (&$called) {
+            app(QueryTimeout::class)
+                ->build()
+                ->timeout(2)
+                ->on('default')
+                ->whenTimeout(function (QueryTimeoutException $e) use (&$called) {
+                    $called = true;
+                })
+                ->for(fn () => static::generateSleepQuery(3))
+                ->run();
+        }, QueryTimeoutException::class);
+
+        $this->assertTrue($called, 'Builder whenTimeout callback should have been called');
+    }
+
+    public function test_builder_when_timeout_callback_is_not_called_without_timeout()
+    {
+        $called = false;
+
+        app(QueryTimeout::class)
+            ->build()
+            ->timeout(3)
+            ->on('default')
+            ->whenTimeout(function () use (&$called) {
+                $called = true;
+            })
+            ->for(fn () => \DB::select('SELECT TRUE'))
+            ->run();
+
+        $this->assertFalse($called, 'Builder whenTimeout callback should not have been called');
+    }
+
+    public function test_builder_when_timeout_with_default_calls_callback_and_returns_default()
+    {
+        $called = false;
+
+        $result = app(QueryTimeout::class)
+            ->build()
+            ->timeout(2)
+            ->on('default')
+            ->whenTimeout(function (QueryTimeoutException $e) use (&$called) {
+                $called = true;
+            })
+            ->default('default_value')
+            ->for(fn () => static::generateSleepQuery(3))
+            ->run();
+
+        $this->assertTrue($called, 'Builder whenTimeout callback should have been called');
+        $this->assertEquals('default_value', $result->getResult());
+    }
+
+    public function test_builder_when_timeout_with_default_null()
+    {
+        $result = app(QueryTimeout::class)
+            ->build()
+            ->timeout(2)
+            ->on('default')
+            ->whenTimeout(fn () => null)
+            ->default(null)
+            ->for(fn () => static::generateSleepQuery(3))
+            ->run();
+
+        $this->assertNull($result->getResult());
+    }
+
+    public function test_non_timeout_exception()
+    {
+        $this->expectException(QueryException::class);
+
+        app(QueryTimeout::class)
+            ->build()
+            ->timeout(2)
+            ->for(fn () => \DB::select('WRONG QUERY'))
+            ->run();
+    }
+
+    public function test_non_timeout_exception_with_default()
+    {
+        $this->expectException(QueryException::class);
+
+        app(QueryTimeout::class)
+            ->build()
+            ->timeout(2)
+            ->default('default_value')
+            ->for(fn () => \DB::select('WRONG QUERY'))
+            ->run();
+    }
+
     protected static function generateSleepQuery(int $seconds)
     {
         $sleepFnc = config('database.connections.default.driver') === 'pgsql' ? 'PG_SLEEP' : 'SLEEP';

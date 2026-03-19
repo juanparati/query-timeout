@@ -47,17 +47,17 @@ class MariadbQueryTimeoutDriver implements QueryTimeoutDriver
         $this->setTimeout($this->defaultTimeout);
     }
 
-    public function throwTimeoutException(\Throwable $error): never
+    public function captureTimeoutException(\Throwable $error): \Throwable
     {
         // It will detect timeout for MariaDB
         if ($error instanceof QueryException
             && $error->getCode() == 70100
             && str($error->getMessage())->contains('max_statement_time', true)
         ) {
-            throw new QueryTimeoutException($this->connection->getName(), $error);
+            return new QueryTimeoutException($this->connection->getName(), $error);
         }
 
-        throw $error;
+        return $error;
     }
 
     public function canRaiseTimeoutException(): bool

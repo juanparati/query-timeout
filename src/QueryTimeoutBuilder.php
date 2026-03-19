@@ -3,6 +3,7 @@
 namespace Juanparati\QueryTimeout;
 
 use Illuminate\Database\Connection;
+use Juanparati\QueryTimeout\Exceptions\QueryTimeoutException;
 
 /**
  * Fluent interface builder for QueryTimeout.
@@ -14,6 +15,7 @@ use Illuminate\Database\Connection;
  *     ->build()
  *     ->timeout(5)
  *     ->on('mysql')
+ *     ->whenTimeout(fn($e) => logs()->error($e->getMessage()))
  *     ->for(fn() => User::all())
  *     ->run();
  */
@@ -35,9 +37,24 @@ class QueryTimeoutBuilder
     protected mixed $callback = null;
 
     /**
+     * Callback to run when the query times out.
+     *
+     * @var mixed|null
+     */
+    protected mixed $whenTimeoutCallback = null;
+
+    /**
+     * Default value to return if the query times out instead of throwing an exception.
+     *
+     * @var mixed
+     */
+    protected mixed $defaultValue = null;
+
+    /**
      * The QueryTimeout service instance.
      */
     protected QueryTimeout $service;
+
 
     /**
      * Create a new QueryTimeoutBuilder instance.
@@ -71,15 +88,55 @@ class QueryTimeoutBuilder
         return $this;
     }
 
+
+    /**
+     * Execute a callback when the query times out.
+     *
+     * @param callable $callback
+     * @return $this
+     */
+    public function whenTimeout(callable $callback): static
+    {
+        $this->whenTimeoutCallback = $callback;
+        return $this;
+    }
+
+
+    /**
+     * Set the default value to return if the query times out.
+     * When a default value is set, the QueryTimeoutException is never thrown.
+     *
+     * @param mixed $value
+     * @return $this
+     */
+    public function default(mixed $value): static
+    {
+        $this->defaultValue = new QueryTimeoutDefaultResult($value);
+        return $this;
+    }
+
+
     /**
      * Execute the query with the configured timeout and connection.
      * Alias for query() when callback is already set.
      *
      * @return QueryTimeout
+     * @throws \Throwable
      */
     public function run(): QueryTimeout
     {
-        return ($this->service)($this->callback, $this->seconds, $this->connection);
+        if (is_null($this->callback)) {
+            throw new \RuntimeException('Query callback is not set.');
+        }
+
+        return ($this->service)(
+            $this->callback,
+            $this->seconds,
+            $this->connection,
+            $this->whenTimeoutCallback,
+            $this->defaultValue instanceof QueryTimeoutDefaultResult ? $this->defaultValue->value() : null,
+            !$this->defaultValue instanceof QueryTimeoutDefaultResult
+        );
     }
 
     /**

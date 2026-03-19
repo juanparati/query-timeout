@@ -70,4 +70,49 @@ class QueryTimeoutBuilderTest extends TimeoutTestBase
         $this->assertInstanceOf(QueryTimeoutBuilder::class, $builder1);
         $this->assertNotSame($builder1, $builder2);
     }
+
+    public function test_when_timeout_returns_self_for_fluent_chaining(): void
+    {
+        $builder = $this->createBuilder();
+
+        $this->assertSame($builder, $builder->whenTimeout(fn () => null));
+    }
+
+    public function test_default_returns_self_for_fluent_chaining(): void
+    {
+        $builder = $this->createBuilder();
+
+        $this->assertSame($builder, $builder->default('fallback'));
+    }
+
+    public function test_run_without_callback_throws_runtime_exception(): void
+    {
+        $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Query callback is not set.');
+
+        $this->createBuilder()->timeout(5)->run();
+    }
+
+    public function test_full_fluent_chain_with_when_timeout_returns_builder(): void
+    {
+        $result = $this->createBuilder()
+            ->timeout(5)
+            ->on('default')
+            ->whenTimeout(fn () => null)
+            ->for(fn () => true);
+
+        $this->assertInstanceOf(QueryTimeoutBuilder::class, $result);
+    }
+
+    public function test_full_fluent_chain_with_default_and_when_timeout(): void
+    {
+        $result = $this->createBuilder()
+            ->timeout(5)
+            ->on('default')
+            ->whenTimeout(fn () => null)
+            ->default('fallback')
+            ->for(fn () => true);
+
+        $this->assertInstanceOf(QueryTimeoutBuilder::class, $result);
+    }
 }

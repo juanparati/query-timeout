@@ -23,17 +23,17 @@ class MysqlQueryTimeoutDriver extends MariadbQueryTimeoutDriver
         parent::setTimeout($seconds * 1000);
     }
 
-    public function throwTimeoutException(\Throwable $error): never
+    public function captureTimeoutException(\Throwable $error): \Throwable
     {
         // It will detect timeout for MySQL
         if ($error instanceof QueryException
             && $error->getCode() === 'HY000'
             && str($error->getMessage())->contains('time exceeded', true)
         ) {
-            throw new QueryTimeoutException($this->connection->getName(), $error);
+            return new QueryTimeoutException($this->connection->getName(), $error);
         }
 
-        throw $error;
+        return $error;
     }
 
     public function canRaiseTimeoutException(): bool

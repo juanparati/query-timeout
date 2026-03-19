@@ -37,17 +37,17 @@ class PgsqlQueryTimeoutDriver implements QueryTimeoutDriver
         return ! empty($this->connection->select('SHOW statement_timeout'));
     }
 
-    public function throwTimeoutException(\Throwable $error): never
+    public function captureTimeoutException(\Throwable $error): \Throwable
     {
         // It will detect timeout for PostgreSQL
         if ($error instanceof QueryException
             && $error->getCode() == 57014
             && str($error->getMessage())->contains('timeout', true)
         ) {
-            throw new QueryTimeoutException($this->connection->getName(), $error);
+            return new QueryTimeoutException($this->connection->getName(), $error);
         }
 
-        throw $error;
+        return $error;
     }
 
     public function canRaiseTimeoutException(): bool
