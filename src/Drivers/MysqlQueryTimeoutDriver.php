@@ -41,6 +41,6 @@ class MysqlQueryTimeoutDriver extends MariadbQueryTimeoutDriver
         // Unfortunately, MySQL doesn't raise exceptions for pure computational queries,
         // so we have to re-check manually that query was expired
         // @see https://bugs.mysql.com/bug.php?id=120108
-        return !($this->config['recheck_timeout'] ?? true);
+        return ! ($this->config['recheck_timeout'] ?? true);
     }
 }

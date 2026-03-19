@@ -20,53 +20,42 @@ class QueryTimeout
      */
     protected array $drivers = [];
 
-
     /**
      * Query result
-     *
-     * @var mixed
      */
     protected mixed $lastResult = null;
 
-
     /**
      * Query execution time
-     *
-     * @var int|null
      */
-    protected int|null $lastQueryTime = null;
+    protected ?int $lastQueryTime = null;
 
-
-    public function __construct(protected array $config = [])
-    {
-    }
-
+    public function __construct(protected array $config = []) {}
 
     /**
      * Run query with timeout.
      *
-     * @param callable|null $callback Database query
-     * @param int|float|null $seconds Timeout in seconds (Default: See timeout config)
-     * @param string|Connection|null $con Connection (Default: default connection)
-     * @param callable|null $whenTimeout Callback executed when callback execution expires
-     * @param mixed $fallbackValue The default result value used when throwTimeoutException is false
-     * @param bool $throwTimeoutException Indicates whether to throw a QueryTimeoutException or return the default result value
+     * @param  callable|null  $callback  Database query
+     * @param  int|float|null  $seconds  Timeout in seconds (Default: See timeout config)
+     * @param  string|Connection|null  $con  Connection (Default: default connection)
+     * @param  callable|null  $whenTimeout  Callback executed when callback execution expires
+     * @param  mixed  $fallbackValue  The default result value used when throwTimeoutException is false
+     * @param  bool  $throwTimeoutException  Indicates whether to throw a QueryTimeoutException or return the default result value
      * @return QueryTimeout|QueryTimeoutBuilder
      */
     public function __invoke(
-        callable|null          $callback = null,
-        int|float|null         $seconds = null,
+        ?callable $callback = null,
+        int|float|null $seconds = null,
         string|Connection|null $con = null,
-        callable|null          $whenTimeout = null,
-        mixed                  $fallbackValue = null,
-        bool                   $throwTimeoutException = true
-    ): static|QueryTimeoutBuilder
-    {
-        if (null === $callback) {
+        ?callable $whenTimeout = null,
+        mixed $fallbackValue = null,
+        bool $throwTimeoutException = true
+    ): static|QueryTimeoutBuilder {
+        if ($callback === null) {
             return $this->build();
         }
 
-        $this->lastResult    = new QueryTimeoutDefaultResult($fallbackValue);
+        $this->lastResult = null;
         $this->lastQueryTime = null;
 
         $seconds = $seconds ?? $this->config['default_timeout'];
@@ -76,7 +65,7 @@ class QueryTimeout
 
         $connectionName = $con->getName();
 
-        if (!isset($this->drivers[$connectionName])) {
+        if (! isset($this->drivers[$connectionName])) {
             $driverName = str($con->getDriverName())
                 ->lower();
 
@@ -97,7 +86,7 @@ class QueryTimeout
         $con = $this->drivers[$connectionName];
         $con->setTimeout($seconds);
 
-        $error      = null;
+        $error = null;
         $startTimer = now();
 
         try {
@@ -116,7 +105,7 @@ class QueryTimeout
         // Unfortunately, some RDBMS like MySQL doesn't raise any error or warning when calculated queries are used.
         // so we have to calculate the runtime and artificially to create the exception.
         // This method is non-deterministic because the PHP code will consume runtime.
-        if (!$error && !$con->canRaiseTimeoutException()) {
+        if (! $error && ! $con->canRaiseTimeoutException()) {
             if ($seconds < ($runtime / 1e6)) {
                 $error = new QueryTimeoutException($connectionName);
             }
@@ -126,6 +115,7 @@ class QueryTimeout
 
         if ($error) {
             if ($error instanceof QueryTimeoutException) {
+                $this->lastResult = new QueryTimeoutDefaultResult($fallbackValue);
 
                 if ($whenTimeout) {
                     $whenTimeout($error);
@@ -145,19 +135,14 @@ class QueryTimeout
 
     /**
      * Builder instance.
-     *
-     * @return QueryTimeoutBuilder
      */
     public function build(): QueryTimeoutBuilder
     {
         return new QueryTimeoutBuilder($this);
     }
 
-
     /**
      * Get query result.
-     *
-     * @return mixed
      */
     public function getResult(): mixed
     {
@@ -166,10 +151,8 @@ class QueryTimeout
 
     /**
      * Get query execution time.
-     *
-     * @return int|null
      */
-    public function getQueryTime(): int|null
+    public function getQueryTime(): ?int
     {
         return $this->lastQueryTime;
     }
@@ -182,7 +165,7 @@ class QueryTimeout
         return match ($this->config['resolution']) {
             'microsecond', 'microseconds' => 1,
             'millisecond', 'milliseconds' => 1e3,
-            default                       => 1e6,
+            default => 1e6,
         };
     }
 }

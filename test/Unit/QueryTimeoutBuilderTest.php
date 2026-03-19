@@ -48,7 +48,7 @@ class QueryTimeoutBuilderTest extends TimeoutTestBase
 
     public function test_builder_resolves_service_from_container(): void
     {
-        $builder = new QueryTimeoutBuilder();
+        $builder = new QueryTimeoutBuilder;
 
         $this->assertInstanceOf(QueryTimeoutBuilder::class, $builder);
     }

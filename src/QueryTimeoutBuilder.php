@@ -45,8 +45,6 @@ class QueryTimeoutBuilder
 
     /**
      * Default value to return if the query times out instead of throwing an exception.
-     *
-     * @var mixed
      */
     protected mixed $defaultValue = null;
 
@@ -54,7 +52,6 @@ class QueryTimeoutBuilder
      * The QueryTimeout service instance.
      */
     protected QueryTimeout $service;
-
 
     /**
      * Create a new QueryTimeoutBuilder instance.
@@ -67,60 +64,58 @@ class QueryTimeoutBuilder
     /**
      * Set the timeout in seconds.
      *
-     * @param int|float $seconds The timeout duration in seconds
+     * @param  int|float  $seconds  The timeout duration in seconds
      * @return $this
      */
     public function timeout(int|float $seconds): static
     {
         $this->seconds = $seconds;
+
         return $this;
     }
 
     /**
      * Set the database connection.
      *
-     * @param string|Connection $connection The connection name or instance
+     * @param  string|Connection  $connection  The connection name or instance
      * @return $this
      */
     public function on(string|Connection $connection): static
     {
         $this->connection = $connection;
+
         return $this;
     }
-
 
     /**
      * Execute a callback when the query times out.
      *
-     * @param callable $callback
      * @return $this
      */
     public function whenTimeout(callable $callback): static
     {
         $this->whenTimeoutCallback = $callback;
+
         return $this;
     }
-
 
     /**
      * Set the default value to return if the query times out.
      * When a default value is set, the QueryTimeoutException is never thrown.
      *
-     * @param mixed $value
      * @return $this
      */
     public function default(mixed $value): static
     {
         $this->defaultValue = new QueryTimeoutDefaultResult($value);
+
         return $this;
     }
-
 
     /**
      * Execute the query with the configured timeout and connection.
      * Alias for query() when callback is already set.
      *
-     * @return QueryTimeout
      * @throws \Throwable
      */
     public function run(): QueryTimeout
@@ -135,19 +130,20 @@ class QueryTimeoutBuilder
             $this->connection,
             $this->whenTimeoutCallback,
             $this->defaultValue instanceof QueryTimeoutDefaultResult ? $this->defaultValue->value() : null,
-            !$this->defaultValue instanceof QueryTimeoutDefaultResult
+            ! $this->defaultValue instanceof QueryTimeoutDefaultResult
         );
     }
 
     /**
      * Set the query callback. Allows setting the callback in a fluent way.
      *
-     * @param callable $callback The query callback to execute
+     * @param  callable  $callback  The query callback to execute
      * @return $this
      */
     public function for(callable $callback): static
     {
         $this->callback = $callback;
+
         return $this;
     }
 }

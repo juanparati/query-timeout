@@ -52,7 +52,6 @@ class TimeoutTest extends TimeoutTestBase
         );
     }
 
-
     public function test_when_timeout_callback_is_called_on_timeout()
     {
         $called = false;
