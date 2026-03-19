@@ -124,7 +124,7 @@ class QueryTimeoutBuilder
             throw new \RuntimeException('Query callback is not set.');
         }
 
-        return ($this->service)(
+        return $this->service->run(
             $this->callback,
             $this->seconds,
             $this->connection,

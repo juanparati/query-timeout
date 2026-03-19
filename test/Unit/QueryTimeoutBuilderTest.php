@@ -53,13 +53,6 @@ class QueryTimeoutBuilderTest extends TimeoutTestBase
         $this->assertInstanceOf(QueryTimeoutBuilder::class, $builder);
     }
 
-    public function test_invoke_without_callback_returns_builder(): void
-    {
-        $service = app(QueryTimeout::class);
-
-        $this->assertInstanceOf(QueryTimeoutBuilder::class, $service());
-    }
-
     public function test_build_returns_new_builder_instance(): void
     {
         $service = app(QueryTimeout::class);

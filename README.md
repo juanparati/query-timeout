@@ -22,7 +22,7 @@ composer require juanparati/query-timeout
 Use the `QueryTimeout` facade to set a maximum execution time for your queries:
 
 ```PHP
-\QueryTimeout(
+\QueryTimeout::run(
     fn() => \DB::select('SELECT SLEEP(4)'),     // Your query comes here (Use pg_sleep for testing with PostgreSQL)
     3                                     ,     // Interrupt if a query takes more than 3 seconds (Keep null for default timeout)
     'myconnection'                              // Database connection (Keep null for the default connection)
@@ -33,7 +33,7 @@ Use the `QueryTimeout` facade to set a maximum execution time for your queries:
 or using the fluent builder:
 
 ```PHP
-\QueryTimeout()
+\QueryTimeout::build()
     ->for(fn() => \DB::select('SELECT SLEEP(4)'))
     ->timeout(3)
     ->on('myconnection')
@@ -51,7 +51,7 @@ Instead of passing the results as reference like in the following example:
 ```PHP
 $users = null;
 
-\QueryTimeout(
+\QueryTimeout::run(
     function() use (&$users) => $users = User::where('name', 'like', 'john%')->get()
 );
 ```
@@ -59,7 +59,7 @@ $users = null;
 you can also get the results directly:
 
 ```PHP
-$users = \QueryTimeout(
+$users = \QueryTimeout::run(
     fn() => User::where('name', 'like', 'john%')->get()
 )->getResult();
 ```
@@ -69,8 +69,8 @@ $users = \QueryTimeout(
 RDBMS are not very accurate stopping queries, but you can get the real execution time of the query using the `getQueryTime` method:
 
 ```PHP
-$queryTime = \QueryTimeout(
-    \DB::select('SELECT SLEEP(4)')
+$queryTime = \QueryTimeout::run(
+    fn() => \DB::select('SELECT SLEEP(4)')
 )->getQueryTime();
 ```
 
@@ -131,7 +131,7 @@ The timeout mechanism works by:
 ```PHP
 $users = null;
 
-\QueryTimeout(
+\QueryTimeout::run(
     function() use (&$users) => $users = User::where('name', 'like', 'john%')->get(),
 );
 
@@ -145,7 +145,7 @@ foreach ($users as $user) {
 ❌ Not recommended:
 
 ```PHP
-\QueryTimeout(
+\QueryTimeout::run(
     function() {
         $users = User::where('name', 'like', 'john%')->get()
 

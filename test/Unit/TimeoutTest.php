@@ -12,7 +12,7 @@ class TimeoutTest extends TimeoutTestBase
     public function test_timeout()
     {
         $this->assertThrows(
-            fn () => app(QueryTimeout::class)(fn () => static::generateSleepQuery(3), 2),
+            fn () => app(QueryTimeout::class)->run(fn () => static::generateSleepQuery(3), 2),
             QueryTimeoutException::class
         );
 
@@ -26,7 +26,7 @@ class TimeoutTest extends TimeoutTestBase
         $error = null;
 
         try {
-            app(QueryTimeout::class)(fn () => \DB::select('SELECT TRUE'), 3);
+            app(QueryTimeout::class)->run(fn () => \DB::select('SELECT TRUE'), 3);
         } catch (QueryException $error) {
         }
 
@@ -38,7 +38,7 @@ class TimeoutTest extends TimeoutTestBase
         config()->set('query-timeout.resolution', 'second');
 
         $this->assertGreaterThan(
-            app(QueryTimeout::class)(fn () => static::generateSleepQuery(1), 2)
+            app(QueryTimeout::class)->run(fn () => static::generateSleepQuery(1), 2)
                 ->getQueryTime(),
             2
         );
@@ -46,7 +46,7 @@ class TimeoutTest extends TimeoutTestBase
         config()->set('query-timeout.resolution', 'millisecond');
 
         $this->assertGreaterThan(
-            app(QueryTimeout::class)(fn () => static::generateSleepQuery(1), 2)
+            app(QueryTimeout::class)->run(fn () => static::generateSleepQuery(1), 2)
                 ->getQueryTime(),
             1200,
         );
@@ -57,7 +57,7 @@ class TimeoutTest extends TimeoutTestBase
         $called = false;
 
         $this->assertThrows(function () use (&$called) {
-            app(QueryTimeout::class)(
+            app(QueryTimeout::class)->run(
                 fn () => static::generateSleepQuery(3),
                 2,
                 null,
@@ -75,7 +75,7 @@ class TimeoutTest extends TimeoutTestBase
         $receivedException = null;
 
         $this->assertThrows(function () use (&$receivedException) {
-            app(QueryTimeout::class)(
+            app(QueryTimeout::class)->run(
                 fn () => static::generateSleepQuery(3),
                 2,
                 null,
@@ -93,7 +93,7 @@ class TimeoutTest extends TimeoutTestBase
     {
         $called = false;
 
-        app(QueryTimeout::class)(
+        app(QueryTimeout::class)->run(
             fn () => \DB::select('SELECT TRUE'),
             3,
             null,
@@ -109,7 +109,7 @@ class TimeoutTest extends TimeoutTestBase
     {
         $called = false;
 
-        $result = app(QueryTimeout::class)(
+        $result = app(QueryTimeout::class)->run(
             fn () => static::generateSleepQuery(3),
             2,
             null,
@@ -126,7 +126,7 @@ class TimeoutTest extends TimeoutTestBase
 
     public function test_when_timeout_with_no_throw_returns_null_fallback()
     {
-        $result = app(QueryTimeout::class)(
+        $result = app(QueryTimeout::class)->run(
             fn () => static::generateSleepQuery(3),
             2,
             null,

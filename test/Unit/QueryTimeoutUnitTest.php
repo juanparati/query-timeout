@@ -31,13 +31,6 @@ class QueryTimeoutUnitTest extends TestCase
         $this->assertInstanceOf(QueryTimeoutBuilder::class, $this->createService()->build());
     }
 
-    public function test_invoke_without_callback_returns_builder(): void
-    {
-        $service = $this->createService();
-
-        $this->assertInstanceOf(QueryTimeoutBuilder::class, $service(null));
-    }
-
     public function test_time_resolution_microsecond(): void
     {
         $this->assertTimeResolutionScale(1, 'microsecond');

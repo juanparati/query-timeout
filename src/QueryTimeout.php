@@ -43,17 +43,14 @@ class QueryTimeout
      * @param  bool  $throwTimeoutException  Indicates whether to throw a QueryTimeoutException or return the default result value
      * @return QueryTimeout|QueryTimeoutBuilder
      */
-    public function __invoke(
-        ?callable $callback = null,
+    public function run(
+        callable $callback,
         int|float|null $seconds = null,
         string|Connection|null $con = null,
         ?callable $whenTimeout = null,
         mixed $fallbackValue = null,
         bool $throwTimeoutException = true
     ): static|QueryTimeoutBuilder {
-        if ($callback === null) {
-            return $this->build();
-        }
 
         $this->lastResult = null;
         $this->lastQueryTime = null;
@@ -116,10 +113,7 @@ class QueryTimeout
         if ($error) {
             if ($error instanceof QueryTimeoutException) {
                 $this->lastResult = new QueryTimeoutDefaultResult($fallbackValue);
-
-                if ($whenTimeout) {
-                    $whenTimeout($error);
-                }
+                tap($error, $whenTimeout);
 
                 if ($throwTimeoutException === true) {
                     throw $error;
