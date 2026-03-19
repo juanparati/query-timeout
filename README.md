@@ -26,7 +26,7 @@ Use the `QueryTimeout` facade to set a maximum execution time for your queries:
     fn() => \DB::select('SELECT SLEEP(4)'),     // Your query comes here (Use pg_sleep for testing with PostgreSQL)
     3                                     ,     // Interrupt if a query takes more than 3 seconds (Keep null for default timeout)
     'myconnection'                              // Database connection (Keep null for the default connection)
-    fn() => logs()->error('Timeout here')       // Run this callback before throwing the exception
+    fn() => logs()->error('Timeout here')       // Run this callback before throwing QueryTimeoutException
 );
 ```
 
