@@ -9,6 +9,12 @@ Compatible with the following RDBMS:
 - MySQL
 - PostgreSQL
 
+## Installation
+
+```sh
+composer require juanparati/query-timeout
+```
+
 ## How it works.
 
 ### Running queries
