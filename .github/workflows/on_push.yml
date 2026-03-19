@@ -1,0 +1,77 @@
+name: Test status
+
+on:
+  push:
+    branches: [ "master", "12.x" ]
+  pull_request:
+    branches: [ "master", "12.x" ]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - db: mariadb
+            db_connection: mariadb
+            db_image: mariadb:10
+            db_port: 3306
+            db_user: root
+            db_env_key: MARIADB_ALLOW_EMPTY_ROOT_PASSWORD
+            db_env_value: 1
+            health_cmd: healthcheck.sh --connect --innodb_initialized
+            pdo_extension: pdo_mysql
+          - db: mysql
+            db_connection: mysql
+            db_image: mysql:8
+            db_port: 3306
+            db_user: root
+            db_env_key: MYSQL_ALLOW_EMPTY_PASSWORD
+            db_env_value: 1
+            health_cmd: mysqladmin ping
+            pdo_extension: pdo_mysql
+          - db: postgresql
+            db_connection: pgsql
+            db_image: postgres:15
+            db_port: 5432
+            db_user: postgres
+            db_env_key: POSTGRES_HOST_AUTH_METHOD
+            db_env_value: trust
+            health_cmd: pg_isready
+            pdo_extension: pdo_pgsql
+
+    name: ${{ matrix.db }}
+
+    services:
+      database:
+        image: ${{ matrix.db_image }}
+        env:
+          ${{ matrix.db_env_key }}: ${{ matrix.db_env_value }}
+        ports:
+          - ${{ matrix.db_port }}:${{ matrix.db_port }}
+        options: --health-cmd="${{ matrix.health_cmd }}" --health-interval=10s --health-timeout=5s --health-retries=3
+
+    steps:
+      - name: Setup PHP with PECL extension
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, ${{ matrix.pdo_extension }}, :php-psr
+          tools: composer:v2
+
+      - uses: actions/checkout@v4
+
+      - name: Validate composer.json and composer.lock
+        run: composer validate
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Run test suite
+        run: DB_DRIVER=${{ matrix.db_connection }} DB_PORT=${{ matrix.db_port }} DB_USERNAME=${{ matrix.db_user }} vendor/bin/phpunit
