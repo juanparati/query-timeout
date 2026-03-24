@@ -232,7 +232,31 @@ class TimeoutTest extends TimeoutTestBase
 
     protected static function generateSleepQuery(int $seconds)
     {
-        $sleepFnc = config('database.connections.default.driver') === 'pgsql' ? 'PG_SLEEP' : 'SLEEP';
+        $driver = config('database.connections.default.driver');
+        $sleepFnc = "SELECT SLEEP($seconds)";
+
+        if ($driver === 'pgsql') {
+            $sleepFnc = 'PG_SLEEP';
+        }
+
+        if ($driver === 'mysql') {
+            $sleepFnc = <<<SQL
+                SET SESSION cte_max_recursion_depth = 999999999;
+
+                WITH RECURSIVE loop_cte AS (
+                    SELECT 1 AS iteration, NOW(6) AS start_time
+
+                    UNION ALL
+
+                    SELECT iteration + 1, start_time
+                    FROM loop_cte
+                    WHERE TIMESTAMPDIFF(MICROSECOND, start_time, NOW(6)) < 3000000
+                )
+                SELECT
+                    COUNT(*)
+                FROM loop_cte;
+            SQL;
+        }
 
         return \DB::select(sprintf('SELECT %s(%d)', $sleepFnc, $seconds));
     }

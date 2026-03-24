@@ -18,7 +18,7 @@ class QueryTimeoutProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->publishes([
                 __DIR__.'/../../config/query-timeout.php' => config_path('query-timeout.php'),
-            ]);
+            ], 'query-timeout');
         }
     }
 

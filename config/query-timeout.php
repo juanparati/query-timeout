@@ -15,7 +15,7 @@ return [
     | exact moment you specify.
     |
     */
-    'default_timeout' => (ini_get('max_execution_time') ?: 100) - 5,
+    'default_timeout' => (ini_get('max_execution_time') ?: 100) - 10,
 
     /*
     |--------------------------------------------------------------------------
