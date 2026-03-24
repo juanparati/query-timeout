@@ -37,7 +37,7 @@ class ServiceProviderTest extends TestCase
 
     public function test_default_timeout_is_derived_from_max_execution_time(): void
     {
-        $expected = (ini_get('max_execution_time') ?: 100) - 5;
+        $expected = (ini_get('max_execution_time') ?: 100) - 10;
 
         $this->assertEquals($expected, config('query-timeout.default_timeout'));
     }
