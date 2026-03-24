@@ -34,9 +34,9 @@ abstract class TimeoutTestBase extends TestCase
         config()->set('database.connections.default', [
             'driver' => env('DB_DRIVER', 'mariadb'),
             'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '3306'),
-            'username' => env('DB_USERNAME', 'root'),
-            'password' => env('DB_PASSWORD', ''),
+            'port' => env('DB_PORT', '33060'),
+            'username' => env('DB_USERNAME', 'homestead'),
+            'password' => env('DB_PASSWORD', 'secret'),
             'database' => env('DB_DATABASE', ''),
             'prefix' => '',
         ]);

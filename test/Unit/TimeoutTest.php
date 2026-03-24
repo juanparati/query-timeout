@@ -236,28 +236,22 @@ class TimeoutTest extends TimeoutTestBase
         $sleepFnc = "SELECT SLEEP($seconds)";
 
         if ($driver === 'pgsql') {
-            $sleepFnc = 'PG_SLEEP';
+            $sleepFnc = "SELECT PG_SLEEP($seconds)";
         }
 
         if ($driver === 'mysql') {
+            // MySQL SLEEP works in a different way than other drivers, so we need to use a subquery in order
+            // of forcing the timeout error is triggered.
+            //
+            // See: https://bugs.mysql.com/bug.php?id=120108
             $sleepFnc = <<<SQL
-                SET SESSION cte_max_recursion_depth = 999999999;
-
-                WITH RECURSIVE loop_cte AS (
-                    SELECT 1 AS iteration, NOW(6) AS start_time
-
-                    UNION ALL
-
-                    SELECT iteration + 1, start_time
-                    FROM loop_cte
-                    WHERE TIMESTAMPDIFF(MICROSECOND, start_time, NOW(6)) < 3000000
+                WITH response AS(
+                    SELECT sleep($seconds), NOW() as time_now
                 )
-                SELECT
-                    COUNT(*)
-                FROM loop_cte;
+                select time_now from response;
             SQL;
         }
 
-        return \DB::select(sprintf('SELECT %s(%d)', $sleepFnc, $seconds));
+        return \DB::select($sleepFnc);
     }
 }

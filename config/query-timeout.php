@@ -60,7 +60,7 @@ return [
     'mysql' => [
 
         /*
-        | MySQL has a bug that prevents detecting query expiration for pure computational queries,
+        | MySQL has a bug that prevents detecting query expiration for some pure computational queries,
         | so it requires to re-check manually when a query is expired.
         |
         | If 'recheck_timeout' is set to false, you may face the risk of receiving incomplete results
@@ -69,6 +69,6 @@ return [
         | See: https://bugs.mysql.com/bug.php?id=120108
         |
         */
-        'recheck_timeout' => true,
+        'recheck_timeout' => false,
     ],
 ];
