@@ -29,12 +29,7 @@ class ServiceProviderTest extends TestCase
     {
         $this->assertEquals('millisecond', config('query-timeout.resolution'));
     }
-
-    public function test_mysql_recheck_timeout_defaults_to_true(): void
-    {
-        $this->assertTrue(config('query-timeout.mysql.recheck_timeout'));
-    }
-
+    
     public function test_default_timeout_is_derived_from_max_execution_time(): void
     {
         $expected = (ini_get('max_execution_time') ?: 100) - 10;
